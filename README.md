@@ -150,3 +150,7 @@ Select store from the dropdown to view stock.
 This is an ongoing innovation project.
 Suggestions, issues, and PRs are welcome!
 
+## License
+This project is licensed under the MIT License.  
+Copyright © 2025 Prashant Kumar Mahskey
+
