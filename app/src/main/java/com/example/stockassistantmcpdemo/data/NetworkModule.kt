@@ -79,7 +79,7 @@ interface MCPApi {
  */
 object NetworkModule {
     // Use 10.0.2.2 to reach host machine when running on emulator.
-    private const val BASE_URL = "http://192.168.1.5:3100"
+    private const val BASE_URL = "http://192.168.1.13:3000"
 
     /**
      * Provides an instance of the [MCPApi] interface.

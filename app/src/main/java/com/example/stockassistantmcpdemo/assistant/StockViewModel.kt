@@ -27,7 +27,7 @@ class StockViewModel : ViewModel() {
     private val _overview = MutableStateFlow<StockOverview?>(null)
     val overview = _overview.asStateFlow()
 
-    private val baseUrl = "http://192.168.1.5:3100"
+    private val baseUrl = "http://192.168.1.13:3000"
 
     private val _storeStock = MutableStateFlow<List<StoreStockItem>>(emptyList())
     val storeStock = _storeStock.asStateFlow()
@@ -73,7 +73,7 @@ class StockViewModel : ViewModel() {
                     }
                 }
 
-                client.get("http://192.168.1.5:3100/stock/live").bodyAsChannel().let { channel ->
+                client.get("http://192.168.1.13:3000/stock/live").bodyAsChannel().let { channel ->
                     val buffer = StringBuilder()
                     while (!channel.isClosedForRead) {
                         val line = channel.readUTF8Line( 4096) ?: continue

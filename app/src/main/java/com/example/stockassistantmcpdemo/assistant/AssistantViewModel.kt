@@ -185,6 +185,6 @@ class AssistantViewModel : ViewModel() {
 
     companion object {
         // Emulator: 10.0.2.2 — for physical device replace with your laptop IP
-        const val BASE_URL = "http://192.168.1.5:3100"
+        const val BASE_URL = "http://192.168.1.13:3000"
     }
 }
