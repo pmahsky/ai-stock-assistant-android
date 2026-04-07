@@ -5,6 +5,19 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.22"
 }
 
+import java.util.Properties
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    }
+}
+
+val devHost = localProperties.getProperty("dev.host", "10.0.2.2")
+val backendPort = localProperties.getProperty("dev.backend.port", "8000")
+val assistantPort = localProperties.getProperty("dev.assistant.port", "3000")
+
 android {
     namespace = "com.example.stockassistantmcpdemo"
     compileSdk {
@@ -19,6 +32,10 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "DEV_HOST", "\"$devHost\"")
+        buildConfigField("String", "BACKEND_BASE_URL", "\"http://$devHost:$backendPort\"")
+        buildConfigField("String", "ASSISTANT_BASE_URL", "\"http://$devHost:$assistantPort\"")
     }
 
     buildTypes {
@@ -39,6 +56,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

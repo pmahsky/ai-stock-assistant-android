@@ -1,5 +1,6 @@
 package com.example.stockassistantmcpdemo.data
 
+import com.example.stockassistantmcpdemo.BuildConfig
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
@@ -30,11 +31,21 @@ data class LowStockResponse(val store_id: Int, val low_stock_items: List<LowStoc
  * @param to_store The ID of the store to transfer to.
  * @param quantity The quantity of the product to transfer.
  */
+/**
+ * Represents a request to transfer stock from one store to another.
+ *
+ * @param product_name The name of the product to transfer.
+ * @param from_store The ID of the store to transfer from.
+ * @param to_store The ID of the store to transfer to.
+ * @param quantity The quantity of the product to transfer.
+ * @param transfer_type The type of transfer (e.g. "MANUAL", "PFS", "CANTEEN").
+ */
 data class TransferRequest(
     val product_name: String,
     val from_store: Int,
     val to_store: Int,
-    val quantity: Int
+    val quantity: Int,
+    val transfer_type: String = "MANUAL"
 )
 
 /**
@@ -44,6 +55,39 @@ data class TransferRequest(
  * @param detail A message detailing the result of the transfer.
  */
 data class TransferResponse(val ok: Boolean, val detail: String)
+
+/**
+ * Represents a product suggestion for transfer.
+ */
+data class TransferSuggestion(
+    val product: String,
+    val suggested_qty: Int,
+    val frequency: Int,
+    val score: Double,
+    val confidence: String,
+    val reason: String
+)
+
+data class StoreOption(
+    val store_id: Int,
+    val store_name: String,
+    val store_type: String,
+    val parent_store_id: Int? = null
+)
+
+data class StoreDirectoryResponse(val items: List<StoreOption>)
+
+data class ProductListResponse(val items: List<String>)
+
+/**
+ * Represents the response containing transfer recommendations.
+ */
+data class TransferRecommendationResponse(
+    val from_store: Int,
+    val to_store: Int,
+    val transfer_type: String,
+    val suggestions: List<TransferSuggestion>
+)
 
 /**
  * An interface for the MCP API.
@@ -58,9 +102,9 @@ interface MCPApi {
      * @param threshold The threshold for low stock.
      * @return A [LowStockResponse] containing the low stock items.
      */
-    @GET("/tool/get_low_stock")
+    @GET("/low_stock/{store_id}")
     suspend fun getLowStock(
-        @Query("store_id") storeId: Int,
+        @Path("store_id") storeId: Int,
         @Query("threshold") threshold: Int = 10
     ): LowStockResponse
 
@@ -70,16 +114,31 @@ interface MCPApi {
      * @param body A [TransferRequest] containing the details of the transfer.
      * @return A [TransferResponse] detailing the result of the transfer.
      */
-    @POST("/tool/transfer_stock")
+    @POST("/transfer_stock")
     suspend fun transferStock(@Body body: TransferRequest): TransferResponse
+
+    /**
+     * Gets transfer recommendations based on history.
+     */
+    @GET("/transfer_recommendations")
+    suspend fun getTransferRecommendations(
+        @Query("from_store") fromStore: Int,
+        @Query("to_store") toStore: Int,
+        @Query("transfer_type") transferType: String
+    ): TransferRecommendationResponse
+
+    @GET("/stores")
+    suspend fun getStores(@Query("q") query: String? = null): StoreDirectoryResponse
+
+    @GET("/products")
+    suspend fun getProducts(@Query("q") query: String? = null): ProductListResponse
 }
 
 /**
  * A module for providing the [MCPApi] interface.
  */
 object NetworkModule {
-    // Use 10.0.2.2 to reach host machine when running on emulator.
-    private const val BASE_URL = "http://192.168.1.13:3000"
+    private val BASE_URL = BuildConfig.BACKEND_BASE_URL
 
     /**
      * Provides an instance of the [MCPApi] interface.

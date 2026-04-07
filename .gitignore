@@ -1,0 +1,12 @@
+# Gradle / Android Studio
+.gradle/
+build/
+local.properties
+.idea/
+
+# Module outputs
+app/build/
+captures/
+
+# OS files
+.DS_Store

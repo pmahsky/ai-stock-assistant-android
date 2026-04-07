@@ -3,33 +3,44 @@ package com.example.stockassistantmcpdemo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import com.example.stockassistantmcpdemo.assistant.AssistantScreen
 import com.example.stockassistantmcpdemo.assistant.AssistantViewModel
-import com.example.stockassistantmcpdemo.ui.theme.ChatViewModel
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.example.stockassistantmcpdemo.data.TransferAssistContext
+import com.example.stockassistantmcpdemo.ui.TransferScreen
+import com.example.stockassistantmcpdemo.ui.theme.StockAssistantMCPDemoTheme
 
-/**
- * The main activity of the application.
- *
- * This activity hosts the [AssistantScreen] composable, which provides the main UI of the app.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
-    private val viewModel: ChatViewModel by viewModels()
-    /**
-     * Called when the activity is first created.
-     *
-     * This method sets up the content of the activity by displaying the [AssistantScreen] composable.
-     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val vm = AssistantViewModel()
+            val vm = remember { AssistantViewModel() }
+            var currentScreen by remember { mutableStateOf("ASSISTANT") }
+            var transferContext by remember { mutableStateOf<TransferAssistContext?>(null) }
 
-            MaterialTheme {
-                AssistantScreen(vm)
+            StockAssistantMCPDemoTheme {
+                if (currentScreen == "TRANSFER") {
+                    TransferScreen(
+                        initialContext = transferContext,
+                        onBack = {
+                            currentScreen = "ASSISTANT"
+                            transferContext = null
+                        }
+                    )
+                } else {
+                    AssistantScreen(
+                        vm,
+                        onOpenTransfer = { context ->
+                            transferContext = context
+                            currentScreen = "TRANSFER"
+                        }
+                    )
+                }
             }
         }
     }
