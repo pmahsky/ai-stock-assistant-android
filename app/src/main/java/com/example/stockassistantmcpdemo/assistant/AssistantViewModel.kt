@@ -17,7 +17,11 @@ import org.json.JSONObject
 
 class AssistantViewModel : ViewModel() {
 
-    data class Message(val sender: String, val text: String)
+    data class Message(
+        val sender: String,
+        val text: String,
+        val responseMode: String? = null
+    )
 
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
     val messages: StateFlow<List<Message>> = _messages.asStateFlow()
@@ -31,7 +35,11 @@ class AssistantViewModel : ViewModel() {
     private val _pendingTransferContext = MutableStateFlow<TransferAssistContext?>(null)
     val pendingTransferContext: StateFlow<TransferAssistContext?> = _pendingTransferContext.asStateFlow()
 
+    private val _lastResponseMode = MutableStateFlow<String?>(null)
+    val lastResponseMode: StateFlow<String?> = _lastResponseMode.asStateFlow()
+
     private val client = OkHttpClient()
+    private var currentStoreContext: Int? = null
 
     fun toggleMode() {
         _fullScreen.value = !_fullScreen.value
@@ -41,7 +49,11 @@ class AssistantViewModel : ViewModel() {
         _pendingTransferContext.value = null
     }
 
-    fun send(text: String) {
+    fun setCurrentStore(storeId: Int?) {
+        currentStoreContext = storeId
+    }
+
+    fun send(text: String, currentStore: Int? = currentStoreContext) {
         if (text.isBlank()) return
 
         _messages.value = _messages.value + Message("You", text)
@@ -49,9 +61,13 @@ class AssistantViewModel : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val body = JSONObject()
+                val payloadBody = JSONObject()
                     .put("message", text)
                     .put("session_id", "android-demo")
+
+                currentStore?.let { payloadBody.put("current_store", it) }
+
+                val body = payloadBody
                     .toString()
                     .toRequestBody("application/json".toMediaTypeOrNull())
 
@@ -65,12 +81,13 @@ class AssistantViewModel : ViewModel() {
                     val payload = JSONObject(raw)
 
                     val rawReply = payload.optString("reply")
+                    val responseMode = payload.optString("response_mode").ifBlank { null }
                     val reply = when {
                         rawReply.isBlank() -> "Ready."
                         rawReply.trim() == "<natural reply>" -> "Ready. Try PFS 201, PFS 204, or canteen."
                         else -> rawReply
                     }
-                    appendBotMessage(reply)
+                    appendBotMessage(reply, responseMode)
 
                     if (payload.optString("action") == "open_transfer_assist") {
                         payload.optJSONObject("transfer_context")?.let { context ->
@@ -86,7 +103,8 @@ class AssistantViewModel : ViewModel() {
                 }
             } catch (_: Exception) {
                 appendBotMessage(
-                    "I couldn’t reach the local stock demo just now. Please try again in a moment."
+                    "I couldn’t reach the local stock demo just now. Please try again in a moment.",
+                    "offline"
                 )
             } finally {
                 _isTyping.value = false
@@ -106,8 +124,9 @@ class AssistantViewModel : ViewModel() {
         send("scan 8901234567890")
     }
 
-    private fun appendBotMessage(text: String) {
-        _messages.value = _messages.value + Message("Bot", text)
+    private fun appendBotMessage(text: String, responseMode: String? = null) {
+        _lastResponseMode.value = responseMode
+        _messages.value = _messages.value + Message("Bot", text, responseMode)
     }
 
     companion object {

@@ -71,6 +71,7 @@ fun FullScreenChat(
     onOpenTransfer: (TransferAssistContext?) -> Unit
 ) {
     val messages by vm.messages.collectAsState()
+    val lastResponseMode by vm.lastResponseMode.collectAsState()
     val stockVM: StockViewModel = viewModel()
     val overview by stockVM.overview.collectAsState()
     val storeStock by stockVM.storeStock.collectAsState()
@@ -103,6 +104,7 @@ fun FullScreenChat(
     }
 
     LaunchedEffect(selectedStore) {
+        vm.setCurrentStore(selectedStore)
         stockVM.fetchStoreStock(selectedStore)
     }
 
@@ -146,12 +148,13 @@ fun FullScreenChat(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     "Plan transfers, answer stock questions, and guide new teammates.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                AssistantModeChip(lastResponseMode)
             }
             IconButton(onClick = {
                 ttsEnabled = !ttsEnabled
@@ -174,8 +177,8 @@ fun FullScreenChat(
         ) {
             item {
                 HeroCard(
-                    onAskCapabilities = { vm.send("I am new here. What can you do?") },
-                    onExplainTransfer = { vm.send("How does Transfer Assist work?") },
+                    onAskCapabilities = { vm.send("I am new here. What can you do?", selectedStore) },
+                    onExplainTransfer = { vm.send("How does Transfer Assist work?", selectedStore) },
                     onOpenTransfer = { onOpenTransfer(null) }
                 )
             }
@@ -192,7 +195,7 @@ fun FullScreenChat(
                         "Canteen plan" to "What should I transfer to staff canteen?",
                         "Low stock 103" to "Show low stock in store 103"
                     ),
-                    onPromptClick = vm::send
+                    onPromptClick = { vm.send(it, selectedStore) }
                 )
             }
 
@@ -221,7 +224,7 @@ fun FullScreenChat(
                         subtitle = "Best repeat items from Parent Store 101",
                         suggestions = pfsHighlights,
                         emptyLabel = "No repeat pattern yet for PFS 204.",
-                        onAsk = { vm.send("Suggest products for PFS 204") },
+                        onAsk = { vm.send("Suggest products for PFS 204", selectedStore) },
                         onOpen = {
                             onOpenTransfer(
                                 TransferAssistContext(
@@ -237,7 +240,7 @@ fun FullScreenChat(
                         subtitle = "Likely next run from Parent Store 101",
                         suggestions = canteenHighlights,
                         emptyLabel = "No repeat pattern yet for staff canteen.",
-                        onAsk = { vm.send("What should I transfer to staff canteen?") },
+                        onAsk = { vm.send("What should I transfer to staff canteen?", selectedStore) },
                         onOpen = {
                             onOpenTransfer(
                                 TransferAssistContext(
@@ -271,7 +274,7 @@ fun FullScreenChat(
             if (messages.isEmpty()) {
                 item {
                     EmptyConversationCard(
-                        onAskPrompt = { vm.send("What can you do?") }
+                        onAskPrompt = { vm.send("What can you do?", selectedStore) }
                     )
                 }
             } else {
@@ -308,7 +311,7 @@ fun FullScreenChat(
                 Button(
                     onClick = {
                         if (input.isNotBlank()) {
-                            vm.send(input.trim())
+                            vm.send(input.trim(), selectedStore)
                             input = ""
                         }
                     }
@@ -317,6 +320,28 @@ fun FullScreenChat(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AssistantModeChip(responseMode: String?) {
+    val label = when (responseMode) {
+        "gemini" -> "Reply source: AI"
+        "local_fallback" -> "Reply source: Local fallback"
+        "offline" -> "Reply source: Offline"
+        else -> "Reply source: Ready"
+    }
+
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(999.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+        )
     }
 }
 
@@ -571,9 +596,27 @@ private fun MessageBubble(msg: AssistantViewModel.Message) {
                 )
                 .padding(14.dp)
         ) {
-            Text(msg.text, color = MaterialTheme.colorScheme.onSurface)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(msg.text, color = MaterialTheme.colorScheme.onSurface)
+                if (!isUser) {
+                    modeLabel(msg.responseMode)?.let { label ->
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
         }
     }
+}
+
+private fun modeLabel(responseMode: String?): String? = when (responseMode) {
+    "gemini" -> "AI-routed reply"
+    "local_fallback" -> "Local fallback reply"
+    "offline" -> "Offline reply"
+    else -> null
 }
 
 @Composable
