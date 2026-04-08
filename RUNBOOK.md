@@ -49,33 +49,34 @@ Notes:
 - voice input should live in the top bar and not cover content
 
 ## Recommendation Flow
-Transfer Assist shows local AI picks built from seeded transfer history.
+Transfer Assist is a UI wrapper around the backend recommendation API.
 
-### User Flow
-1. Pick the source store.
-2. Pick `PFS` or `CANTEEN`.
-3. Choose the destination store.
-4. Tap `Refresh AI Picks`.
-5. Review the cards and add the useful ones to the transfer list.
+### Screen Flow
+1. User enters `Source Store`.
+2. User selects transfer type: `PFS` or `CANTEEN`.
+3. User sets the destination store.
+4. User taps `Refresh AI Picks`.
+5. App shows the returned suggestions.
+6. User taps `Add To Transfer` to move a suggestion into the editable list.
 
-### What the App Requests
-The Android app calls:
+### Request
+The screen calls:
 
 ```text
 GET /transfer_recommendations?from_store=<source>&to_store=<destination>&transfer_type=<type>
 ```
 
-### What the UI Shows
-Each recommendation card includes:
-- product name
-- confidence badge
-- suggested quantity
-- score
-- how many times it moved
-- a short reason
+### Response Fields
+Each suggestion contains:
+- `product`
+- `suggested_qty`
+- `frequency`
+- `score`
+- `confidence`
+- `reason`
 
-### How to Read It
-Example:
+### UI Labels
+Example card:
 
 ```text
 Milk 1L
@@ -84,17 +85,22 @@ Suggested qty 18 • score 0.87 • moved 5 times
 frequently transferred recently
 ```
 
-Meaning:
-- `High` = strong repeat pattern
-- `Suggested qty 18` = starting quantity based on past transfers
-- `score 0.87` = internal strength from `0` to `1`
-- `moved 5 times` = this route repeated 5 times in the last 30 days
-- `frequently transferred recently` = simple explanation generated from the data
+Field meanings:
+- `High`
+  - confidence label from the backend
+- `Suggested qty 18`
+  - recommended starting quantity
+- `score 0.87`
+  - numeric strength of the recommendation
+- `moved 5 times`
+  - transfer count for the selected route in the last 30 days
+- `frequently transferred recently`
+  - short explanation generated from history
 
-### Keep in Mind
+### Implementation Note
 - the recommendation engine is local and deterministic
-- AI may be used by the assistant for conversation and guidance
-- the UI label `AI picks` means assistant-driven recommendations, not a trained ML model
+- AI is used for chat guidance, not for computing the score
+- `AI picks` in the UI means the app is surfacing backend suggestions, not a trained ML model
 
 ## Troubleshooting
 - app cannot reach services
